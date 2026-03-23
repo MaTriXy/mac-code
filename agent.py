@@ -25,32 +25,16 @@ ANSI_RE = re.compile(r'\x1b\[[0-9;]*m|\r')
 def strip_ansi(text):
     return ANSI_RE.sub('', text)
 
-# ── activity animations ───────────────────────────
-FRAMES_THINK = ["◐", "◓", "◑", "◒"]
-FRAMES_SEARCH = ["◜ ", " ◝", " ◞", "◟ "]
-FRAMES_FETCH = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]
-FRAMES_EXEC = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-FRAMES_DONE = ["✓"]
-
-PHASE_CONFIG = {
-    "thinking":           ("bright_cyan",   FRAMES_THINK,  "brain is cooking"),
-    "reading message":    ("bright_cyan",   FRAMES_THINK,  "parsing your request"),
-    "searching the web":  ("bright_green",  FRAMES_SEARCH, "querying DuckDuckGo"),
-    "fetching page":      ("bright_yellow", FRAMES_FETCH,  "downloading content"),
-    "running command":    ("bright_red",    FRAMES_EXEC,   "executing shell"),
-    "reading file":       ("bright_yellow", FRAMES_FETCH,  "reading from disk"),
-    "writing file":       ("bright_yellow", FRAMES_FETCH,  "writing to disk"),
-    "compressing context":("dim",           FRAMES_THINK,  "shrinking history"),
-    "finishing up":       ("bright_green",  FRAMES_DONE,   "almost done"),
-}
-
 # ── live working display ──────────────────────────
+DOTS = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
 class WorkingDisplay:
     def __init__(self):
-        self.events = []       # (timestamp, phase, detail) — full timeline
+        self.events = []
         self.phase = "thinking"
         self.frame = 0
         self.start_time = time.time()
+        self.logs = []
 
     def add_log(self, line):
         clean = strip_ansi(line).strip()
@@ -61,100 +45,58 @@ class WorkingDisplay:
         new_phase = None
         detail = ""
 
-        # Detect phase transitions from picoclaw logs
         if "processing message" in lower:
-            new_phase = "reading message"
-            detail = "received your input"
+            new_phase = "reading your message"
         elif "llm_request" in lower:
             new_phase = "thinking"
-            # Try to extract model name
-            if "model=" in lower:
-                m = re.search(r'model=(\S+)', clean)
-                detail = f"model={m.group(1)}" if m else "calling LLM"
-            else:
-                detail = "generating response"
-        elif "tool_call" in lower:
-            # Try to extract tool name
+        elif "tool_call" in lower or "web_search" in lower:
             if "web_search" in lower or "duckduckgo" in lower:
                 new_phase = "searching the web"
-                detail = "DuckDuckGo search"
             elif "web_fetch" in lower or "fetch" in lower:
                 new_phase = "fetching page"
-                m = re.search(r'url[=:]"?([^"\s,}]+)', clean, re.IGNORECASE)
-                detail = m.group(1)[:60] if m else "downloading"
             elif "exec" in lower:
                 new_phase = "running command"
-                detail = "shell execution"
             elif "read_file" in lower:
                 new_phase = "reading file"
-                detail = ""
             elif "write_file" in lower:
                 new_phase = "writing file"
-                detail = ""
             else:
-                new_phase = "thinking"
-                detail = "tool call"
-        elif "tool_result" in lower:
-            detail = "got result"
+                new_phase = "using tools"
         elif "context_compress" in lower:
             new_phase = "compressing context"
-            detail = "trimming conversation history"
         elif "turn_end" in lower:
             new_phase = "finishing up"
-            detail = "wrapping up"
 
         if new_phase:
             self.phase = new_phase
             self.events.append((time.time() - self.start_time, new_phase, detail))
-        elif detail:
-            self.events.append((time.time() - self.start_time, self.phase, detail))
+
+        # Keep last few interesting log lines
+        if any(k in lower for k in ["llm_request", "tool_call", "tool_result", "turn_end", "web_search", "fetch", "exec"]):
+            short = clean
+            if ">" in short:
+                short = short.split(">", 1)[-1].strip()
+            if len(short) > 70:
+                short = short[:67] + "..."
+            self.logs.append(short)
+            if len(self.logs) > 3:
+                self.logs.pop(0)
 
     def render(self):
         self.frame += 1
         elapsed = time.time() - self.start_time
-        cfg = PHASE_CONFIG.get(self.phase, ("bright_cyan", FRAMES_THINK, ""))
-        color, frames, hint = cfg
-        spinner = frames[self.frame % len(frames)]
+        spinner = DOTS[self.frame % len(DOTS)]
 
-        out = Text()
+        t = Text()
+        t.append(f"  {spinner} ", style="bold bright_cyan")
+        t.append(self.phase, style="bold bright_cyan")
+        t.append(f"  {elapsed:.0f}s", style="dim")
+        t.append("\n")
 
-        # Main status line with spinner
-        out.append(f"  {spinner} ", style=f"bold {color}")
-        out.append(self.phase, style=f"bold {color}")
-        out.append(f"  {elapsed:.0f}s", style="dim")
-        if hint:
-            out.append(f"  {hint}", style="dim italic")
-        out.append("\n")
+        for log in self.logs[-3:]:
+            t.append(f"    {log}\n", style="dim italic")
 
-        # Show recent events as a live timeline
-        recent = self.events[-5:]
-        for ts, phase, detail in recent:
-            icon = "│"
-            # Color-code by phase
-            pcfg = PHASE_CONFIG.get(phase, ("dim", [], ""))
-            pcolor = pcfg[0]
-
-            out.append(f"  {icon} ", style="dim")
-            out.append(f"{ts:5.1f}s ", style="dim")
-
-            # Phase badge
-            badge = phase[:15].ljust(15)
-            out.append(badge, style=f"{pcolor}")
-
-            if detail:
-                out.append(f"  {detail[:50]}", style="dim italic")
-            out.append("\n")
-
-        # Bottom connector
-        if recent:
-            out.append("  ╰─", style="dim")
-            dots = "─" * min(int(elapsed * 2) % 20, 20)
-            out.append(dots, style="dim")
-            pulse = "●" if self.frame % 4 < 2 else "○"
-            out.append(f" {pulse}", style=f"bold {color}")
-            out.append("\n")
-
-        return out
+        return t
 
 # ── detect model ───────────────────────────────────
 def detect_model():
@@ -325,12 +267,11 @@ def render_timeline(events):
     """Show a compact summary of what the agent did."""
     if not events:
         return
-    # Deduplicate consecutive same-phase entries
     summary = []
     last_phase = None
     for ts, phase, detail in events:
         if phase != last_phase:
-            summary.append((ts, phase, detail))
+            summary.append(phase)
             last_phase = phase
 
     if len(summary) <= 1:
@@ -338,11 +279,8 @@ def render_timeline(events):
 
     t = Text()
     t.append("  ", style="dim")
-    for i, (ts, phase, detail) in enumerate(summary):
-        cfg = PHASE_CONFIG.get(phase, ("dim", [], ""))
-        color = cfg[0]
-        label = phase.split()[-1]  # last word
-        t.append(label, style=f"{color}")
+    for i, phase in enumerate(summary):
+        t.append(phase, style="dim italic")
         if i < len(summary) - 1:
             t.append(" → ", style="dim")
     console.print(t)
