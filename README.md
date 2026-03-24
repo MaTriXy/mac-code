@@ -1,16 +1,24 @@
 # 🍎 mac code
 
-**Claude Code, but it runs on your Mac for free.**
+**Open-source AI agent that runs powerful models on your Mac — leveraging Apple Silicon like it was meant to be used.**
 
-No cloud. No API keys. No monthly bill. Two local AI models that auto-switch based on what you need.
+There are 100 million Macs with Apple Silicon in the world. Every one of them has a GPU, unified memory, and a fast SSD. That's the largest untapped AI compute network on Earth — and it's sitting on people's desks doing nothing.
+
+mac code is an open-source project to change that. We run frontier-class open-weight models locally on Macs, with no cloud dependency, no API keys, and no cost per token. The goal is to make every Mac an AI workstation.
 
 ---
 
-## Why this exists
+## The Mission
 
-Every AI coding agent today — Claude Code, Cursor, Copilot — sends your code to someone else's server and charges you per token. We wanted to know: **can a Mac mini on your desk do the same job?**
+**Put open-source AI models on every Mac.**
 
-The answer is yes. And the reason is Apple Silicon.
+Apple Silicon is uniquely suited for local LLM inference. Unlike NVIDIA GPUs, Apple's unified memory architecture lets the CPU, GPU, and SSD share the same address space. This means:
+
+- Models that don't fit in RAM can **page from the SSD** and the GPU still processes everything
+- No PCIe bottleneck, no CPU fallback, no data copies between devices
+- A $600 Mac mini can run a 35-billion parameter model at 30 tokens/second
+
+We proved this works. Now we're open-sourcing the entire stack so anyone with a Mac can do it too.
 
 ## Two models, one agent
 
