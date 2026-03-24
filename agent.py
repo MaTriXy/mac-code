@@ -598,6 +598,14 @@ def print_banner(model_name, model_detail):
     console.print("  [dim]type [bold bright_cyan]/[/bold bright_cyan] to see all commands[/]\n")
 
 # ── render helpers ─────────────────────────────────
+def render_response(response):
+    """Render a response — use Rich Markdown if it has formatting, plain text otherwise."""
+    if any(c in response for c in ["##", "**", "```", "| ", "- ", "1. ", "* "]):
+        console.print(Padding(Markdown(response), (0, 2)))
+    else:
+        for line in response.split("\n"):
+            console.print(f"  {line}")
+
 def render_speed(tokens, elapsed):
     if elapsed <= 0 or tokens <= 0:
         return
@@ -883,8 +891,7 @@ def main():
                 elapsed = time.time() - start
                 if response:
                     console.print(f"  [dim italic](side answer)[/]")
-                    for line in response.split("\n"):
-                        console.print(f"  {line}")
+                    render_response(response)
                     console.print()
                     tokens_est = len(response.split())
                     render_speed(tokens_est, elapsed)
@@ -1090,8 +1097,7 @@ def main():
                     console.print()
                     console.print(f"  [dim]$ {cmd}[/]")
                     console.print()
-                    for line in response.split("\n"):
-                        console.print(f"  {line}")
+                    render_response(response)
                     console.print()
                     s = Text()
                     s.append(f"  ▸ shell", style="bold bright_cyan")
@@ -1144,8 +1150,7 @@ def main():
                 if result:
                     response, speed = result
                     console.print()
-                    for line in response.split("\n"):
-                        console.print(f"  {line}")
+                    render_response(response)
                     console.print()
                     s = Text()
                     s.append(f"  ▸ search", style="bold bright_cyan")
