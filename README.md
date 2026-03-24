@@ -234,12 +234,20 @@ Auto-routing gives you the best of both: tool reliability from the 9B, and raw i
 
 ## Scaling
 
-| Mac | RAM | What you can run |
-|---|---|---|
-| Any Mac (8GB) | 8 GB | 9B only, 4K context |
-| **Mac mini M4** | **16 GB** | **9B (32K ctx) + 35B MoE (8K ctx, SSD paging)** |
-| Mac mini M4 Pro | 48 GB | 35B at Q4_K_M with 32K context |
-| Mac Studio M4 Ultra | 192 GB | 397B-A17B frontier model |
+| Mac | RAM | What you can run | Est. Speed |
+|---|---|---|---|
+| Any Mac (8GB) | 8 GB | 9B only, 4K context | ~15 tok/s |
+| **Mac mini M4** | **16 GB** | **9B (32K ctx) + 35B MoE (8K ctx, SSD paging)** | **30-57 tok/s** |
+| Mac mini M4 Pro | 48 GB | 35B MoE at Q4_K_M, 32K context | ~40+ tok/s |
+| Mac Studio M4 Max | 128 GB | Qwen3.5-397B-A17B (frontier MoE) | ~10-20 tok/s |
+| Mac Studio M4 Ultra | 192 GB | Qwen3.5-397B-A17B at Q4_K_M | ~15-30 tok/s |
+| Mac Pro M4 Ultra | 512 GB | **Kimi K2.5 (1T MoE, 32B active)** | ~5-15 tok/s |
+
+### The 1T model frontier
+
+Models like **Kimi K2.5** (1 trillion parameters, MoE with 32B active per token) currently require cloud GPUs with 8x H100s (~$25/hr). But the same MoE + SSD paging principle applies: a Mac Pro with 512 GB unified memory could potentially run a Q2 quantized 1T model at ~300 GB on disk, with the GPU processing all layers via unified memory. The active 32B parameters would stay hot in RAM while the other 968B page from SSD.
+
+This is the trajectory: what costs $25/hr on cloud GPUs today will run on a desk for $0/hr as Apple Silicon RAM scales up.
 
 ---
 
