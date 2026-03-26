@@ -1,0 +1,14 @@
+timestamp	exp_id	technique	params	backend	cosine_sim	mse	ratio	compress_s	decompress_s	status	planner	description
+2026-03-25T17:25:49.473640	1	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.020	0.011	KEEP	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:28:32.071893	2	mixed_kv	{"group_size": 64, "k_bits": 2, "v_bits": 3}	mlx	0.860073	0.46261267	2.34	0.069	0.031	REVERT	api	Asymmetric quantization using 2-bit for Key cache and 3-bit for Value cache
+2026-03-25T17:28:32.183153	3	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.022	0.016	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:29:41.693847	4	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.054	0.032	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:29:41.816935	5	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.024	0.018	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:30:20.755304	6	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.047	0.025	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:30:20.884002	7	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.026	0.019	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:31:49.150519	8	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.057	0.027	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:31:49.293915	9	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.028	0.021	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:32:26.028329	10	residual_correction	{"base_bits": 2, "projection_dim": 128}	mlx	0.839647	0.74494369	1.25	0.031	0.405	REVERT	api	Apply 2-bit base quantization with residual correction using 128-dim projection to recover precision
+2026-03-25T17:32:26.102699	11	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.014	0.011	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
+2026-03-25T17:34:05.719444	12	lloyd_max	{"bits": 3, "iterations": 20}	mlx	0.929577	0.10450043	2.64	3.955	0.164	REVERT	api	Non-uniform scalar quantization via Lloyd-Max algorithm with 20 iterations
+2026-03-25T17:34:05.808643	13	baseline_minmax	{"bits": 4, "group_size": 64}	mlx	0.992744	0.01846647	2.34	0.018	0.014	REVERT	grid	Grid search: baseline_minmax {'bits': 4, 'group_size': 64}
