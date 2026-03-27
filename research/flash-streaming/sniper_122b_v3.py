@@ -364,11 +364,19 @@ def main():
         else:
             print(f"    CHECK {check_name}: NOT FOUND")
 
-    # Direct gate weight check
-    gate0 = model.model.layers[0].mlp.gate
-    print(f"    GATE0 weight: mean={gate0.weight.float().mean():.6f} std={gate0.weight.float().std():.6f}")
-    gate3 = model.model.layers[3].mlp.gate
-    print(f"    GATE3 weight: mean={gate3.weight.float().mean():.6f} std={gate3.weight.float().std():.6f}")
+    # Check for zero params after injection
+    zero_params = []
+    for n, p in model.named_parameters():
+        if "expert" in n:
+            continue
+        if p.float().std() < 0.0001:
+            zero_params.append(n)
+    print(f"    ZERO PARAMS (non-expert): {len(zero_params)} / {sum(1 for n,_ in model.named_parameters() if 'expert' not in n)}")
+    if zero_params:
+        for zp in zero_params[:10]:
+            print(f"      {zp}")
+        if len(zero_params) > 10:
+            print(f"      ... and {len(zero_params)-10} more")
 
     # ── 5. Expert sniper + MoE patching ──
     print("\n[4/5] Setting up Expert Sniper + patching MoE...")
