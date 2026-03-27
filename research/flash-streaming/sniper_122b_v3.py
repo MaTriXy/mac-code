@@ -34,9 +34,20 @@ GROUP_SIZE = 64
 
 
 def dequantize_mlx_4bit(weight, scales, biases, group_size=64):
-    """Dequantize MLX 4-bit packed uint32 → bfloat16. Unsigned, LSB-first."""
+    """Dequantize MLX 4-bit packed uint32 → bfloat16. Handles 2D and 3D tensors."""
     if weight.dtype not in (torch.uint32, torch.int32):
         return weight.to(torch.bfloat16)
+
+    orig_shape = weight.shape
+    # Flatten to 2D if needed: [batch, out, in_packed] → [batch*out, in_packed]
+    if weight.ndim == 3:
+        batch = orig_shape[0]
+        weight = weight.reshape(-1, orig_shape[-1])
+        scales = scales.reshape(-1, scales.shape[-1])
+        biases = biases.reshape(-1, biases.shape[-1])
+    else:
+        batch = None
+
     out_features = weight.shape[0]
     w = weight.to(torch.int32)
     shifts = torch.arange(0, 32, 4, device=w.device)
@@ -46,7 +57,13 @@ def dequantize_mlx_4bit(weight, scales, biases, group_size=64):
     num_groups = in_features // group_size
     unpacked = unpacked.reshape(out_features, num_groups, group_size)
     dq = unpacked * scales.float().unsqueeze(-1) + biases.float().unsqueeze(-1)
-    return dq.reshape(out_features, in_features).to(torch.bfloat16)
+    result = dq.reshape(out_features, in_features).to(torch.bfloat16)
+
+    # Restore 3D shape if batched
+    if batch is not None:
+        result = result.reshape(batch, orig_shape[1], in_features)
+
+    return result
 
 
 def remap_key(k):
