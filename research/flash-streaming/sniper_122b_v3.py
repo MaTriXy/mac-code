@@ -123,6 +123,9 @@ def make_sniped_forward(moe_block, layer_idx, sniper, top_k):
         B, L, D = hidden_states.shape
         x = hidden_states.reshape(-1, D)
         router_logits = gate(x)
+        # Handle case where gate returns a tuple (some HF implementations do this)
+        if isinstance(router_logits, tuple):
+            router_logits = router_logits[0]
         scores = F.softmax(router_logits, dim=-1, dtype=torch.float32)
         topk_w, topk_idx = torch.topk(scores, top_k, dim=-1)
         topk_w = (topk_w / topk_w.sum(dim=-1, keepdim=True)).to(hidden_states.dtype)
