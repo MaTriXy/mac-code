@@ -139,13 +139,21 @@ def make_sniped_forward(moe_block, layer_idx, sniper, top_k):
     def forward(hidden_states):
         B, L, D = hidden_states.shape
         x = hidden_states.reshape(-1, D)
-        router_logits = gate(x)
-        # Handle case where gate returns a tuple (some HF implementations do this)
-        if isinstance(router_logits, tuple):
-            router_logits = router_logits[0]
-        scores = F.softmax(router_logits, dim=-1, dtype=torch.float32)
-        topk_w, topk_idx = torch.topk(scores, top_k, dim=-1)
-        topk_w = (topk_w / topk_w.sum(dim=-1, keepdim=True)).to(hidden_states.dtype)
+
+        # Gate returns 3 values: (router_logits, routing_weights, selected_experts)
+        gate_out = gate(x)
+        if isinstance(gate_out, tuple) and len(gate_out) == 3:
+            _, topk_w, topk_idx = gate_out
+        elif isinstance(gate_out, tuple) and len(gate_out) == 2:
+            _, topk_w = gate_out
+            topk_idx = torch.topk(topk_w, top_k, dim=-1).indices
+        else:
+            # Fallback: gate returns raw logits
+            router_logits = gate_out
+            scores = F.softmax(router_logits, dim=-1, dtype=torch.float32)
+            topk_w, topk_idx = torch.topk(scores, top_k, dim=-1)
+            topk_w = topk_w / topk_w.sum(dim=-1, keepdim=True)
+        topk_w = topk_w.to(hidden_states.dtype)
 
         needed = topk_idx.unique().tolist()
         expert_w = sniper.get_experts(layer_idx, needed)
@@ -172,9 +180,8 @@ def make_sniped_forward(moe_block, layer_idx, sniper, top_k):
             output = output + s_out
 
         del expert_w
-        # CRITICAL: HF expects (hidden_states, router_logits) tuple
-        # Without this, the parent layer silently corrupts the residual stream
-        return output.reshape(B, L, D), router_logits
+        # HF Qwen3.5 MoE forward returns plain tensor, NOT a tuple
+        return output.reshape(B, L, D)
 
     return forward
 
