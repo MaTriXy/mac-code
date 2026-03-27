@@ -188,15 +188,16 @@ def main():
     print("\n[1/5] Creating model skeleton (no experts)...")
     t0 = time.time()
 
-    # Temporarily reduce expert count to 1 to minimize memory during init
-    orig_num_experts = text_cfg.num_experts
-    text_cfg.num_experts = 1  # allocate only 1 expert per layer (will be deleted anyway)
+    # Keep num_experts=256 (router needs correct output dim) but shrink
+    # expert intermediate to 1 so each expert is tiny (~12 KB instead of 18 MB)
+    orig_intermediate = text_cfg.moe_intermediate_size
+    text_cfg.moe_intermediate_size = 1
 
     from transformers import AutoModelForCausalLM
     model = AutoModelForCausalLM.from_config(
-        text_cfg, trust_remote_code=True, torch_dtype=torch.bfloat16
+        text_cfg, trust_remote_code=True, dtype=torch.bfloat16
     )
-    text_cfg.num_experts = orig_num_experts  # restore
+    text_cfg.moe_intermediate_size = orig_intermediate  # restore
 
     print(f"  Created in {time.time()-t0:.1f}s")
 
